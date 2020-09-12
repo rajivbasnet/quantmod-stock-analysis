@@ -1,0 +1,423 @@
+---
+title: "Stock Analysis with Quantmod"
+Name: Rajiv Basnet
+---
+
+## Analysis of Stock Trends and Visualizations
+
+The tools used are R packages quantmod and Quandl.
+
+List of Stocks:
+
+Google (GOOG),
+Amazon (AMZN),
+Bank of America (BAC),
+Gold (GLD)
+
+List of Functions and Common Indicators:
+
+addSMA() - Simple Moving Average,
+addMACD() - Moving Average Convergence Divergence,
+addBBands() - Bollinger Bands,
+addCCI() - Commodity channel index,
+addADX() - Directional Movement Indicator,
+addCMF()  - Add Chaiken Money Flow
+
+For others, see https://en.wikipedia.org/wiki/Technical_analysis
+
+```{r, results = 'hide'}
+## install.packages("quantmod")
+library(quantmod)
+```
+
+The getSymbols function loads (downloads) historic price data Usage.
+
+## ^GSPC - S&P 500 
+
+Retrieving data for GSPC and putting in an environment named "data".
+
+Printing last ten lines of dataset from data environment.
+
+
+```{r, echo = FALSE, results = 'hide'}
+
+getSymbols("AMZN", src = "yahoo", from =  as.Date("2019-01-01"), to = as.Date("2019-05-01"))
+tail(AMZN,10)
+getSymbols("GOOG", src = "yahoo", from =  as.Date("2019-01-01"), to = as.Date("2019-05-01"))
+tail(GOOG,10)
+getSymbols("BAC", src = "yahoo", from =  as.Date("2019-01-01"), to = as.Date("2019-05-01"))
+tail(BAC,10)
+getSymbols("GLD", src = "yahoo", from =  as.Date("2019-01-01"), to = as.Date("2019-05-01"))
+tail(GLD,10)
+getSymbols("^GSPC", src = "yahoo", from =  as.Date("2019-01-01"), to = as.Date("2019-05-01"))
+tail(GSPC,10)
+
+```
+
+Chart series prints candle chart with volume at bottom, for all records in 2018.
+
+```{r}
+chartSeries(AMZN,subset="2019",theme="white")
+chartSeries(GOOG,subset="2019",theme="white")
+chartSeries(BAC,subset="2019",theme="white")
+chartSeries(GLD,subset="2019",theme="white")
+chartSeries(GSPC,subset="2019",theme="white")
+```
+
+
+Design (theme) changes to make more visible 
+```{r}
+whiteTheme <- chartTheme("white") 
+
+## List of desig options in "theme" function
+names(whiteTheme)
+
+whiteTheme$bg.col <- "white"
+whiteTheme$dn.col <- "pink"
+whiteTheme$up.col <- "lightgreen"
+whiteTheme$border <- "lightgray"
+x1 <- chartSeries(AMZN,subset="last 3 months",theme=whiteTheme,TA=NULL) 
+x2 <- chartSeries(GOOG,subset="last 3 months",theme=whiteTheme,TA=NULL) 
+x3 <- chartSeries(BAC,subset="last 3 months",theme=whiteTheme,TA=NULL) 
+x4 <- chartSeries(GLD,subset="last 3 months",theme=whiteTheme,TA=NULL) 
+x5 <- chartSeries(GSPC,subset="last 3 months",theme=whiteTheme,TA=NULL) 
+class(x1)
+class(x2)
+class(x3)
+class(x4)
+class(x5)
+```
+
+
+Provide title for chart:
+```{r}
+chartSeries(AMZN["2019"],theme=whiteTheme,name="Amazon")
+chartSeries(GOOG["2019"],theme=whiteTheme,name="Google")
+chartSeries(BAC["2019"],theme=whiteTheme,name="Bank of America")
+chartSeries(GLD["2019"],theme=whiteTheme,name="Gold")
+chartSeries(GSPC["2019"],theme=whiteTheme,name="S&P 500")
+```
+
+
+Two years - 2018 & whatever available for 2019
+```{r}
+chartSeries(AMZN["2018/2019"],theme=whiteTheme,name="Amazon")
+chartSeries(GOOG["2018/2019"],theme=whiteTheme,name="Google")
+chartSeries(BAC["2018/2019"],theme=whiteTheme,name="Bank of America")
+chartSeries(GLD["2018/2019"],theme=whiteTheme,name="Gold")
+chartSeries(GSPC["2018/2019"],theme=whiteTheme,name="S&P 500")
+```
+
+Comparing the median return ratios:
+
+```{r}
+
+returnAMZN<-annualReturn(AMZN, subset="2018/2019") 
+median(returnAMZN)
+returnGOOG<-annualReturn(GOOG, subset="2018/2019") 
+median(returnGOOG)
+returnBAC<-annualReturn(BAC, subset="2018/2019") 
+median(returnBAC)
+returnGLD<-annualReturn(GLD, subset="2018/2019") 
+median(returnGLD)
+returnGSPC<-annualReturn(GSPC, subset ="2018/2019") 
+median(returnGSPC)
+```
+
+
+SPY is a S&P 500 ETF (exchange traded fund).
+An ETF is traded on a major stock exchange—like the New York Stock Exchange or Nasdaq.
+It is a basket of stocks, in this case all the individual stocks on the S&P 500 
+
+
+```{r}
+getSymbols("SPY", from="2019-01-01")
+class(SPY)
+head(SPY)
+```
+
+Chart Item together for comparison
+
+```{r}
+chart_Series(Cl(GSPC), subset = "2019")
+add_TA(Cl(AMZN), on = 1, col = "black")
+add_TA(Cl(GOOG), on = 1, col = "red")
+add_TA(Cl(BAC), on = NA, col = "green")
+add_TA(Cl(GLD), on = NA, col = "blue")
+```
+
+
+Combine additional securities with normalization
+
+To see relative changes more easily, you can normalise your price series in many ways. This is a typical approach (using a 0 origin is what Google charts does):
+
+```{r}
+normalise_series <- function(xdat) xdat / coredata(xdat)[1]
+window <- "2019/"
+
+# Define colour of default chart line to chart_Series in mytheme object
+# which is passed to chart_Series:
+mytheme <- chart_theme()
+mytheme$col$line.col <- "gold"
+chart_Series(normalise_series(Cl(GSPC)[window]) - 1, theme = mytheme)
+add_TA(normalise_series(Cl(AMZN)[window]) - 1, on = 1, col = "black", lty = 3)
+add_TA(normalise_series(Cl(GOOG)[window]) - 1, on = 1, col = "red", lty = 3)
+add_TA(normalise_series(Cl(BAC)[window]) - 1, on = 1, col = "green", lty = 3)
+add_TA(normalise_series(Cl(GLD)[window]) - 1, on = 1, col = "blue", lty = 3)
+
+# Or add RSIs on different subpanels to improve readability of charts:
+#add_TA(RSI(Cl(AMZN)), on = NA, col = "black")
+#add_TA(RSI(Cl(GOOG)), on = 2, col = "red", lty = 3)
+#add_TA(RSI(Cl(BAC)), on = NA, col = "green", lty = 2)
+#add_TA(RSI(Cl(GLD)), on = NA, col = "blue", lty = 2)
+#add_TA(RSI(Cl(GSPC)), on = NA, col = "orange", lty = 2)
+
+
+```
+
+Get Stock Dividends
+
+```{r}
+(div <- getDividends("GOOG"))
+```
+
+
+Get Returns (Profit or Loss from beginning of period)
+
+```{r}
+
+# Quick returns - quantmod style
+ 
+## getSymbols("SBUX")
+dreturns<-dailyReturn(GOOG) # returns by day
+head(dreturns)
+
+wreturns<-weeklyReturn(GOOG) # returns by week
+summary(wreturns)
+
+mreturns<-monthlyReturn(GOOG) # returns by month, indexed by yearmon
+mreturns
+ 
+
+```
+
+
+All Returns summary compared
+
+```{r}
+
+# daily,weekly,monthly,quarterly, and yearly
+allreturns<-allReturns(GSPC) # note the plural
+summary(allreturns)
+```
+
+
+
+Get Price Earnings ratio:
+
+```{r}
+getQuote("AMZN", what = yahooQF("P/E Ratio"))
+getQuote("GOOG", what = yahooQF("P/E Ratio"))
+getQuote("BAC", what = yahooQF("P/E Ratio"))
+getQuote("GLD", what = yahooQF("P/E Ratio"))
+getQuote("^GSPC", what = yahooQF("P/E Ratio"))
+
+```
+
+Get Price Earnings Ratio:
+
+```{r}
+require(quantmod)
+require("plyr")
+what_metrics <- yahooQF(c("Price/Sales", 
+                          "P/E Ratio",
+                          "Price/EPS Estimate Next Year",
+                          "PEG Ratio",
+                          "Dividend Yield", 
+                          "Market Capitalization"))
+
+tickers <- c("AAPL", "GOOG", "AMZN", "BAC", "GS")
+# Not all the metrics are returned by Yahoo.
+metrics <- getQuote(paste(tickers, sep="", collapse=";"), what=what_metrics)
+
+#Add tickers as the first column and remove the first column which had date stamps
+metrics <- data.frame(Symbol=tickers, metrics[,2:length(metrics)]) 
+
+#Change colnames
+colnames(metrics) <- c("Symbol", "P/E Ratio", "P/E EPS next year", "Div Yield", "Market Cap")
+
+head(metrics,10)
+#Persist this to the csv file
+## write.csv(metrics, "FinancialMetrics.csv", row.names=FALSE)
+```
+
+Use Quandl to get gross domestic product
+```{r}
+
+# install.packages("Quandl")
+library(Quandl)
+# Import GDP data from FRED
+Quandl.api_key("szb8F2ei__rwj7mD3ugt")
+gdp <- Quandl(code = "FRED/GDP")
+
+# Look at the structure of the object returned by Quandl
+
+str(gdp)
+
+head(gdp,20)
+```
+
+
+Download interest rate (DTB3) and GDP (Gross Domestic Product) data from FRED
+DTB3 = 3 month treasury bill
+
+```{r}
+getSymbols('DTB3',src='FRED')
+first(DTB3,'1 week')
+
+getSymbols('GDP',src='FRED') ## quarterly
+first(GDP,'1 week')
+tail(GDP)
+```
+
+```{r}
+chartSeries(DTB3,theme="white",minor.ticks=FALSE)
+```
+
+
+Get data for currency (GBP = British Pound)
+```{r}
+data <- new.env()
+getSymbols("GBP", from="2019-01-01", to="2019-05-01", env = data, auto.assign = T)
+head(data$GBP)
+plot(data$GBP)
+barChart(data$GBP,TA='addSMA(n = 7, col = "red")
+addSMA(n = 44, col = "blue")', subset='2019-01-01/2019-05-01',theme="white",name="GBP")
+```
+
+
+
+Moving averages comparison (SMA) for 20, 50 and 100 trading days.
+
+Simple Moving Average (SMA)
+
+```{r}
+candleChart(AMZN, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addSMA(n=c(20, 50, 80))
+candleChart(GOOG, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addSMA(n=c(20,50,80))
+candleChart(BAC, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addSMA(n=c(20,50,80))
+
+```
+
+
+
+```{r}
+getSymbols("AMZN", from="2019-01-01")
+bA <- BBands(HLC=HLC(AMZN["2019"]), n=20, sd=2)
+tail(bA,10)
+
+getSymbols("GOOG", from="2019-01-01")
+bG <- BBands(HLC=HLC(GOOG["2019"]), n=20, sd=2)
+tail(bG,10)
+
+getSymbols("BAC", from="2019-01-01")
+bB <- BBands(HLC=HLC(BAC["2019"]), n=20, sd=2)
+tail(bB,10)
+```
+
+Bollinger Bands Graph:
+
+```{r}
+
+chartSeries(AMZN, subset = "2019", theme="white")
+addBBands(draw="p")
+addVo()
+
+chartSeries(GOOG, subset = "2019", theme="white")
+addBBands(draw="p")
+addVo()
+
+chartSeries(BAC, subset = "2019", theme="white")
+addBBands(draw="p")
+addVo()
+
+
+```
+
+Moving Average Convergence-Divergence (MACD)
+
+```{r}
+macd <- MACD( Cl(AMZN), 12, 26, 9, maType="EMA" ) 
+tail(macd)
+chartSeries(AMZN, subset="2019",theme="white")
+addMACD()
+
+macd <- MACD( Cl(GOOG), 12, 26, 9, maType="EMA" ) 
+tail(macd)
+chartSeries(GOOG, subset="2019",theme="white")
+addMACD()
+
+macd <- MACD( Cl(BAC), 12, 26, 9, maType="EMA" ) 
+tail(macd)
+chartSeries(BAC, subset="2019",theme="white")
+addMACD()
+```
+
+Relative Strength Index (RSI)
+
+```{r}
+rsi <- RSI( Cl(AMZN), n = 14 ) 
+tail(rsi)
+chartSeries(AMZN, subset="2019",theme="white")
+addRSI()
+
+rsi <- RSI( Cl(GOOG), n = 14 ) 
+tail(rsi)
+chartSeries(GOOG, subset="2019",theme="white")
+addRSI()
+
+rsi <- RSI( Cl(BAC), n = 14 ) 
+tail(rsi)
+chartSeries(BAC, subset="2019",theme="white")
+addRSI()
+```
+
+Commodity Channel Index (CCI):
+```{r}
+candleChart(AMZN, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addCCI()
+
+candleChart(GOOG, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addCCI()
+
+candleChart(BAC, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addCCI()
+```
+
+Directional Movement Indicator (DMI):
+```{r}
+candleChart(AMZN, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addADX()
+
+candleChart(GOOG, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addADX()
+
+candleChart(BAC, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addADX()
+```
+
+Chaiken Money Flow:
+
+```{r}
+candleChart(AMZN, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addCMF()
+
+candleChart(GOOG, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addCMF()
+
+candleChart(BAC, up.col = "black", dn.col = "red", theme = "white", subset = "2019-01/")
+addCMF()
+```
+
